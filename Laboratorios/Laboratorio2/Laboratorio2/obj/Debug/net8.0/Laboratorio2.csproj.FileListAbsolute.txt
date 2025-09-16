@@ -1,0 +1,15 @@
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\bin\Debug\net8.0\Laboratorio2.exe
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\bin\Debug\net8.0\Laboratorio2.deps.json
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\bin\Debug\net8.0\Laboratorio2.runtimeconfig.json
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\bin\Debug\net8.0\Laboratorio2.dll
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\bin\Debug\net8.0\Laboratorio2.pdb
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.AssemblyInfoInputs.cache
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.AssemblyInfo.cs
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.csproj.CoreCompileInputs.cache
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.sourcelink.json
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.dll
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\refint\Laboratorio2.dll
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.pdb
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\Laboratorio2.genruntimeconfig.cache
+C:\Users\braya\Source\Repos\DS4\Laboratorios\Laboratorio2\Laboratorio2\obj\Debug\net8.0\ref\Laboratorio2.dll
