@@ -20,9 +20,9 @@ class Program
         } while (valor != 0);
         if (cant != 0) {
             promedio = suma / cant;
-            Console.WriteLine("El promedio de los valores ingresados es);
+            Console.WriteLine(" El promedio de los valores ingresados es");
     
-                console.writeline(promedio);
+                Console.WriteLine(promedio);
         }
         else
         {
