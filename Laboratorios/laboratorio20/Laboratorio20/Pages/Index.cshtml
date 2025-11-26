@@ -1,0 +1,29 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Tabla de multiplicar</h1>
+
+    <form method="post">
+        <label for="Numero">Ingrese un número:</label>
+        <input asp-for="Numero" type="number" class="form-control" style="max-width:200px; margin:0 auto;" />
+
+        <button type="submit" class="btn btn-primary mt-3">
+            Mostrar tabla
+        </button>
+    </form>
+
+    @if (Model.Tabla != null && Model.Tabla.Count > 0)
+    {
+        <h3 class="mt-4">Tabla del @Model.Numero</h3>
+        <ul style="list-style:none; padding:0;">
+            @foreach (var linea in Model.Tabla)
+            {
+                <li>@linea</li>
+            }
+        </ul>
+    }
+</div>
