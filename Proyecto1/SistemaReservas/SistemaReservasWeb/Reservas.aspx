@@ -23,6 +23,7 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        .back-button:hover { background: #f5f5f5; }
         .header {
             background: white;
             padding: 30px;
@@ -31,6 +32,7 @@
             margin-bottom: 30px;
         }
         h1 { color: #2196F3; font-size: 32px; }
+        .header p { color: #666; margin-top: 10px; }
         .content-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
         .form-card, .list-card {
             background: white;
@@ -47,7 +49,7 @@
         }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
-        input[type="date"], input[type="time"], input[type="number"], select, textarea {
+        input[type="date"], input[type="time"], input[type="number"], input[type="text"], select, textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #ddd;
@@ -67,6 +69,8 @@
         }
         .btn-primary { background: #2196F3; color: white; }
         .btn-primary:hover { background: #1976D2; }
+        .btn-success { background: #4CAF50; color: white; margin-top: 10px; }
+        .btn-success:hover { background: #45a049; }
         .btn-danger {
             background: #f44336;
             color: white;
@@ -104,7 +108,22 @@
         .mensaje { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
         .mensaje.exito { background: #d4edda; color: #155724; }
         .mensaje.error { background: #f8d7da; color: #721c24; }
-        @media (max-width: 968px) { .content-grid { grid-template-columns: 1fr; } }
+        .seccion-clientes {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .cliente-rapido {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        @media (max-width: 968px) { 
+            .content-grid { grid-template-columns: 1fr; }
+            .cliente-rapido { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -121,6 +140,14 @@
                 <div class="form-card">
                     <h2>Nueva Reserva</h2>
                     <div id="mensaje" class="mensaje"></div>
+                    
+                    <div class="seccion-clientes">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #555;">Agregar Cliente Rápido</h3>
+                        <div class="cliente-rapido">
+                            <input type="text" id="txtNuevoCliente" placeholder="Nombre del cliente" />
+                            <button type="button" class="btn btn-success" onclick="agregarClienteRapido()" style="width: auto; padding: 12px 20px;">+ Agregar</button>
+                        </div>
+                    </div>
                     
                     <div class="form-group">
                         <label for="selCliente">Cliente *</label>
@@ -173,7 +200,7 @@
                 <div class="list-card">
                     <h2>Lista de Reservas</h2>
                     <div id="reservasContainer" class="reservas-list">
-                        <div style="text-align: center; color: #999; padding: 50px;">Cargando reservas...</div>
+                        <div style="text-align: center; color: #999; padding: 50px;">No hay reservas registradas</div>
                     </div>
                 </div>
             </div>
@@ -181,13 +208,54 @@
     </form>
     
     <script>
-        const API_URL = 'https://localhost:44309/api/reservas';
+        // Variables globales
+        let clientes = [];
+        let reservas = [];
+        let clienteIdCounter = 1;
+        let reservaIdCounter = 1;
 
         window.onload = function () {
+            cargarDatos();
             cargarClientes();
             cargarReservas();
             establecerFechaMinima();
         };
+
+        function cargarDatos() {
+            const clientesGuardados = localStorage.getItem('clientes');
+            if (clientesGuardados) {
+                clientes = JSON.parse(clientesGuardados);
+                if (clientes.length > 0) {
+                    clienteIdCounter = Math.max(...clientes.map(c => c.id)) + 1;
+                }
+            } else {
+                clientes = [
+                    { id: 1, nombre: 'Juan Pérez', email: 'juan@email.com', telefono: '6000-0001', fechaRegistro: new Date().toISOString() },
+                    { id: 2, nombre: 'María García', email: 'maria@email.com', telefono: '6000-0002', fechaRegistro: new Date().toISOString() },
+                    { id: 3, nombre: 'Carlos López', email: 'carlos@email.com', telefono: '6000-0003', fechaRegistro: new Date().toISOString() },
+                    { id: 4, nombre: 'Ana Martínez', email: 'ana@email.com', telefono: '6000-0004', fechaRegistro: new Date().toISOString() },
+                    { id: 5, nombre: 'Pedro Rodríguez', email: 'pedro@email.com', telefono: '6000-0005', fechaRegistro: new Date().toISOString() }
+                ];
+                clienteIdCounter = 6;
+                guardarClientes();
+            }
+
+            const reservasGuardadas = localStorage.getItem('reservas');
+            if (reservasGuardadas) {
+                reservas = JSON.parse(reservasGuardadas);
+                if (reservas.length > 0) {
+                    reservaIdCounter = Math.max(...reservas.map(r => r.id)) + 1;
+                }
+            }
+        }
+
+        function guardarClientes() {
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+        }
+
+        function guardarReservas() {
+            localStorage.setItem('reservas', JSON.stringify(reservas));
+        }
 
         function establecerFechaMinima() {
             const hoy = new Date().toISOString().split('T')[0];
@@ -195,69 +263,83 @@
             document.getElementById('txtFecha').value = hoy;
         }
 
-        async function cargarClientes() {
-            try {
-                const response = await fetch(API_URL + '/clientes');
-                const clientes = await response.json();
+        function agregarClienteRapido() {
+            const nombre = document.getElementById('txtNuevoCliente').value.trim();
 
-                const select = document.getElementById('selCliente');
-                clientes.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.Id;
-                    option.textContent = cliente.Nombre;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error al cargar clientes:', error);
+            if (!nombre) {
+                mostrarMensaje('Por favor ingrese el nombre del cliente', 'error');
+                return;
             }
+
+            const nuevoCliente = {
+                id: clienteIdCounter++,
+                nombre: nombre,
+                email: nombre.toLowerCase().replace(/\s/g, '') + '@cliente.com',
+                telefono: '0000-0000',
+                fechaRegistro: new Date().toISOString()
+            };
+
+            clientes.push(nuevoCliente);
+            guardarClientes();
+            cargarClientes();
+
+            document.getElementById('txtNuevoCliente').value = '';
+            document.getElementById('selCliente').value = nuevoCliente.id;
+
+            mostrarMensaje('Cliente agregado exitosamente', 'exito');
         }
 
-        async function cargarReservas() {
-            try {
-                const response = await fetch(API_URL);
-                const reservas = await response.json();
+        function cargarClientes() {
+            const select = document.getElementById('selCliente');
+            select.innerHTML = '<option value="">Seleccione un cliente</option>';
 
-                const container = document.getElementById('reservasContainer');
-
-                if (reservas.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; color: #999; padding: 50px;">No hay reservas registradas</div>';
-                } else {
-                    reservas.sort((a, b) => new Date(b.FechaReserva) - new Date(a.FechaReserva));
-
-                    container.innerHTML = reservas.map(reserva => `
-                        <div class="reserva-item ${reserva.Estado.toLowerCase()}">
-                            <div class="reserva-header">
-                                <div class="reserva-cliente">${reserva.ClienteNombre || 'Cliente desconocido'}</div>
-                                <span class="reserva-estado estado-${reserva.Estado.toLowerCase()}">${reserva.Estado}</span>
-                            </div>
-                            <div class="reserva-info">📅 ${formatearFecha(reserva.FechaReserva)}</div>
-                            <div class="reserva-info">🕐 ${formatearHora(reserva.HoraInicio)} - ${formatearHora(reserva.HoraFin)}</div>
-                            <div class="reserva-info">👥 ${reserva.NumeroPersonas} personas</div>
-                            <div class="reserva-info">🏷️ ${reserva.TipoServicio}</div>
-                            ${reserva.Observaciones ? `<div class="reserva-info">📝 ${reserva.Observaciones}</div>` : ''}
-                            ${reserva.Estado === 'Activa' ?
-                            `<button class="btn btn-danger" onclick="cancelarReserva(${reserva.Id})">Cancelar Reserva</button>` :
-                            ''}
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error al cargar reservas:', error);
-            }
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = cliente.nombre;
+                select.appendChild(option);
+            });
         }
 
-        async function crearReserva() {
-            const clienteId = document.getElementById('selCliente').value;
+        function cargarReservas() {
+            const container = document.getElementById('reservasContainer');
 
-            console.log('ClienteID:', clienteID);
-            console.log('Datos a enviar:', {
-                ClienteId: parseInt(clienteID),
-                Fecha: fecha,
-                HoraInicio: horaInicio,
-                HoraFin: horaFin,
-                Descripcion: descripcion
+            if (reservas.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999; padding: 50px;">No hay reservas registradas</div>';
+                return;
+            }
+
+            const reservasOrdenadas = [...reservas].sort((a, b) => {
+                const fechaA = new Date(a.fechaReserva + ' ' + a.horaInicio);
+                const fechaB = new Date(b.fechaReserva + ' ' + b.horaInicio);
+                return fechaB - fechaA;
             });
 
+            container.innerHTML = reservasOrdenadas.map(reserva => {
+                const cliente = clientes.find(c => c.id === reserva.clienteId);
+                const clienteNombre = cliente ? cliente.nombre : 'Cliente desconocido';
+
+                return `
+                    <div class="reserva-item ${reserva.estado.toLowerCase()}">
+                        <div class="reserva-header">
+                            <div class="reserva-cliente">${clienteNombre}</div>
+                            <span class="reserva-estado estado-${reserva.estado.toLowerCase()}">${reserva.estado}</span>
+                        </div>
+                        <div class="reserva-info">📅 ${formatearFecha(reserva.fechaReserva)}</div>
+                        <div class="reserva-info">🕐 ${reserva.horaInicio} - ${reserva.horaFin}</div>
+                        <div class="reserva-info">👥 ${reserva.numeroPersonas} personas</div>
+                        <div class="reserva-info">🏷️ ${reserva.tipoServicio}</div>
+                        ${reserva.observaciones ? `<div class="reserva-info">📝 ${reserva.observaciones}</div>` : ''}
+                        ${reserva.estado === 'Activa' ?
+                        `<button class="btn btn-danger" onclick="cancelarReserva(${reserva.id})">Cancelar Reserva</button>` :
+                        ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function crearReserva() {
+            const clienteId = parseInt(document.getElementById('selCliente').value);
             const fecha = document.getElementById('txtFecha').value;
             const horaInicio = document.getElementById('txtHoraInicio').value;
             const horaFin = document.getElementById('txtHoraFin').value;
@@ -270,50 +352,40 @@
                 return;
             }
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ClienteId: parseInt(clienteId),
-                        FechaReserva: fecha,
-                        HoraInicio: horaInicio + ':00',
-                        HoraFin: horaFin + ':00',
-                        NumeroPersonas: parseInt(personas),
-                        TipoServicio: servicio,
-                        Observaciones: observaciones
-                    })
-                });
-
-                if (response.ok) {
-                    mostrarMensaje('Reserva creada exitosamente', 'exito');
-                    limpiarFormulario();
-                    cargarReservas();
-                } else {
-                    const error = await response.json();
-                    mostrarMensaje(error.Message || 'Error al crear reserva', 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarMensaje('Error de conexión con la API', 'error');
+            if (horaFin <= horaInicio) {
+                mostrarMensaje('La hora de fin debe ser mayor que la hora de inicio', 'error');
+                return;
             }
+
+            const nuevaReserva = {
+                id: reservaIdCounter++,
+                clienteId: clienteId,
+                fechaReserva: fecha,
+                horaInicio: horaInicio,
+                horaFin: horaFin,
+                numeroPersonas: parseInt(personas),
+                tipoServicio: servicio,
+                observaciones: observaciones,
+                estado: 'Activa'
+            };
+
+            reservas.push(nuevaReserva);
+            guardarReservas();
+            cargarReservas();
+            limpiarFormulario();
+
+            mostrarMensaje('Reserva creada exitosamente', 'exito');
         }
 
-        async function cancelarReserva(id) {
+        function cancelarReserva(id) {
             if (!confirm('¿Está seguro de que desea cancelar esta reserva?')) return;
 
-            try {
-                const response = await fetch(API_URL + '/' + id + '/cancelar', { method: 'PUT' });
-
-                if (response.ok) {
-                    mostrarMensaje('Reserva cancelada exitosamente', 'exito');
-                    cargarReservas();
-                } else {
-                    mostrarMensaje('Error al cancelar reserva', 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarMensaje('Error de conexión con la API', 'error');
+            const reserva = reservas.find(r => r.id === id);
+            if (reserva) {
+                reserva.estado = 'Cancelada';
+                guardarReservas();
+                cargarReservas();
+                mostrarMensaje('Reserva cancelada exitosamente', 'exito');
             }
         }
 
@@ -336,12 +408,13 @@
         }
 
         function formatearFecha(fecha) {
-            const d = new Date(fecha);
-            return d.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }
-
-        function formatearHora(hora) {
-            return hora.substring(0, 5);
+            const d = new Date(fecha + 'T00:00:00');
+            return d.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
         }
     </script>
 </body>

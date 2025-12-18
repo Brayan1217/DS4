@@ -54,6 +54,11 @@
             margin-bottom: 10px;
         }
         
+        .header p {
+            color: #666;
+            margin-top: 10px;
+        }
+        
         .content-grid {
             display: grid;
             grid-template-columns: 1fr 2fr;
@@ -196,7 +201,7 @@
             <a href="WebForm1.aspx" class="back-button">← Volver</a>
             
             <div class="header">
-                <h1> Gestión de Clientes</h1>
+                <h1>👥 Gestión de Clientes</h1>
                 <p>Registra y administra la información de tus clientes</p>
             </div>
             
@@ -208,17 +213,17 @@
                     
                     <div class="form-group">
                         <label for="txtNombre">Nombre Completo *</label>
-                        <input type="text" id="txtNombre" placeholder="" required />
+                        <input type="text" id="txtNombre" placeholder="Ej: Juan Pérez" required />
                     </div>
                     
                     <div class="form-group">
                         <label for="txtEmail">Email *</label>
-                        <input type="email" id="txtEmail" placeholder="@correo.com" required />
+                        <input type="email" id="txtEmail" placeholder="ejemplo@correo.com" required />
                     </div>
                     
                     <div class="form-group">
                         <label for="txtTelefono">Teléfono *</label>
-                        <input type="tel" id="txtTelefono" placeholder="" required />
+                        <input type="tel" id="txtTelefono" placeholder="6000-0000" required />
                     </div>
                     
                     <button type="button" class="btn" onclick="registrarCliente()">
@@ -239,103 +244,113 @@
     </form>
     
     <script>
-        const API_URL = 'https://localhost:44309/api/reservas';
-        
-        window.onload = function() {
-            cargarClientes();
+        let clientes = [];
+        let clienteIdCounter = 1;
+
+        window.onload = function () {
+            cargarDatos();
+            mostrarClientes();
         };
-        
-        async function cargarClientes() {
-            try {
-                const response = await fetch(API_URL + '/clientes');
-                const clientes = await response.json();
-                
-                const container = document.getElementById('clientesContainer');
-                
-                if (clientes.length === 0) {
-                    container.innerHTML = '<div class="no-clientes">No hay clientes registrados</div>';
-                } else {
-                    container.innerHTML = clientes.map(cliente => `
-                        <div class="cliente-item">
-                            <div class="cliente-nombre">${cliente.Nombre}</div>
-                            <div class="cliente-info">📧 ${cliente.Email}</div>
-                            <div class="cliente-info">📱 ${cliente.Telefono}</div>
-                            <div class="cliente-fecha">Registrado: ${formatearFecha(cliente.FechaRegistro)}</div>
-                        </div>
-                    `).join('');
+
+        function cargarDatos() {
+            const clientesGuardados = localStorage.getItem('clientes');
+            if (clientesGuardados) {
+                clientes = JSON.parse(clientesGuardados);
+                if (clientes.length > 0) {
+                    clienteIdCounter = Math.max(...clientes.map(c => c.id)) + 1;
                 }
-            } catch (error) {
-                console.error('Error al cargar clientes:', error);
-                document.getElementById('clientesContainer').innerHTML = 
-                    '<div class="no-clientes" style="color: red;">Error al cargar los clientes</div>';
+            } else {
+                clientes = [
+                    { id: 1, nombre: 'Juan Pérez', email: 'juan@email.com', telefono: '6000-0001', fechaRegistro: new Date().toISOString() },
+                    { id: 2, nombre: 'María García', email: 'maria@email.com', telefono: '6000-0002', fechaRegistro: new Date().toISOString() },
+                    { id: 3, nombre: 'Carlos López', email: 'carlos@email.com', telefono: '6000-0003', fechaRegistro: new Date().toISOString() },
+                    { id: 4, nombre: 'Ana Martínez', email: 'ana@email.com', telefono: '6000-0004', fechaRegistro: new Date().toISOString() },
+                    { id: 5, nombre: 'Pedro Rodríguez', email: 'pedro@email.com', telefono: '6000-0005', fechaRegistro: new Date().toISOString() }
+                ];
+                clienteIdCounter = 6;
+                guardarClientes();
             }
         }
-        
-        async function registrarCliente() {
+
+        function guardarClientes() {
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+        }
+
+        function mostrarClientes() {
+            const container = document.getElementById('clientesContainer');
+
+            if (clientes.length === 0) {
+                container.innerHTML = '<div class="no-clientes">No hay clientes registrados</div>';
+                return;
+            }
+
+            container.innerHTML = clientes.map(cliente => `
+                <div class="cliente-item">
+                    <div class="cliente-nombre">${cliente.nombre}</div>
+                    <div class="cliente-info">📧 ${cliente.email}</div>
+                    <div class="cliente-info">📱 ${cliente.telefono}</div>
+                    <div class="cliente-fecha">Registrado: ${formatearFecha(cliente.fechaRegistro)}</div>
+                </div>
+            `).join('');
+        }
+
+        function registrarCliente() {
             const nombre = document.getElementById('txtNombre').value.trim();
             const email = document.getElementById('txtEmail').value.trim();
             const telefono = document.getElementById('txtTelefono').value.trim();
-            
+
             if (!nombre || !email || !telefono) {
                 mostrarMensaje('Por favor complete todos los campos', 'error');
                 return;
             }
-            
+
             if (!validarEmail(email)) {
                 mostrarMensaje('Por favor ingrese un email válido', 'error');
                 return;
             }
-            
-            try {
-                const response = await fetch(API_URL + '/clientes', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        Nombre: nombre,
-                        Email: email,
-                        Telefono: telefono
-                    })
-                });
-                
-                if (response.ok) {
-                    const cliente = await response.json();
-                    mostrarMensaje('Cliente registrado exitosamente', 'exito');
-                    limpiarFormulario();
-                    cargarClientes();
-                } else {
-                    const error = await response.json();
-                    mostrarMensaje(error.Message || 'Error al registrar cliente', 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarMensaje('Error de conexión con la API', 'error');
+
+            if (clientes.some(c => c.email.toLowerCase() === email.toLowerCase())) {
+                mostrarMensaje('Ya existe un cliente con ese email', 'error');
+                return;
             }
+
+            const nuevoCliente = {
+                id: clienteIdCounter++,
+                nombre: nombre,
+                email: email,
+                telefono: telefono,
+                fechaRegistro: new Date().toISOString()
+            };
+
+            clientes.push(nuevoCliente);
+            guardarClientes();
+            mostrarClientes();
+            limpiarFormulario();
+            mostrarMensaje('Cliente registrado exitosamente', 'exito');
         }
-        
+
         function mostrarMensaje(texto, tipo) {
             const mensaje = document.getElementById('mensaje');
             mensaje.textContent = texto;
             mensaje.className = 'mensaje ' + tipo;
             mensaje.style.display = 'block';
-            
+
             setTimeout(() => {
                 mensaje.style.display = 'none';
             }, 5000);
         }
-        
+
         function limpiarFormulario() {
             document.getElementById('txtNombre').value = '';
             document.getElementById('txtEmail').value = '';
             document.getElementById('txtTelefono').value = '';
         }
-        
+
         function validarEmail(email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
-        
+
         function formatearFecha(fecha) {
             const d = new Date(fecha);
             return d.toLocaleDateString('es-ES');

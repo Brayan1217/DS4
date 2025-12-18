@@ -31,6 +31,7 @@
             margin-bottom: 30px;
         }
         h1 { color: #9C27B0; font-size: 32px; }
+        .header p { color: #666; margin-top: 10px; }
         .tabs {
             display: flex;
             gap: 10px;
@@ -237,16 +238,29 @@
     </form>
     
     <script>
-        const API_URL = 'https://localhost:44309/api/reservas';
+        let clientes = [];
+        let reservas = [];
 
         window.onload = function () {
+            cargarDatos();
             const fecha = new Date();
             document.getElementById('selMes').value = fecha.getMonth() + 1;
             document.getElementById('txtAnio').value = fecha.getFullYear();
-
             cargarClientesSelect();
             cargarListaClientes();
         };
+
+        function cargarDatos() {
+            const clientesGuardados = localStorage.getItem('clientes');
+            if (clientesGuardados) {
+                clientes = JSON.parse(clientesGuardados);
+            }
+
+            const reservasGuardadas = localStorage.getItem('reservas');
+            if (reservasGuardadas) {
+                reservas = JSON.parse(reservasGuardadas);
+            }
+        }
 
         function cambiarTab(index) {
             const tabs = document.querySelectorAll('.tab');
@@ -259,93 +273,89 @@
             contents[index].classList.add('active');
         }
 
-        async function cargarClientesSelect() {
-            try {
-                const response = await fetch(API_URL + '/clientes');
-                const clientes = await response.json();
+        function cargarClientesSelect() {
+            const select = document.getElementById('selClienteReporte');
+            select.innerHTML = '<option value="">Seleccione un cliente</option>';
 
-                const select = document.getElementById('selClienteReporte');
-                clientes.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.ClienteID;
-                    option.textContent = `${cliente.Nombre} (${cliente.Email})`;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error al cargar clientes:', error);
-            }
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = `${cliente.nombre} (${cliente.email})`;
+                select.appendChild(option);
+            });
         }
 
-        async function generarReporteMes() {
-            const mes = document.getElementById('selMes').value;
-            const anio = document.getElementById('txtAnio').value;
+        function generarReporteMes() {
+            const mes = parseInt(document.getElementById('selMes').value);
+            const anio = parseInt(document.getElementById('txtAnio').value);
 
             const estadisticas = document.getElementById('estadisticasMes');
             const tabla = document.getElementById('tablaMes');
 
-            estadisticas.innerHTML = '<div class="loading">Cargando reporte...</div>';
-            tabla.innerHTML = '';
+            const reservasMes = reservas.filter(r => {
+                const fecha = new Date(r.fechaReserva);
+                return fecha.getMonth() + 1 === mes && fecha.getFullYear() === anio;
+            });
 
-            try {
-                const response = await fetch(`${API_URL}/reportes/por-mes?mes=${mes}&anio=${anio}`);
-                const data = await response.json();
+            const totalReservas = reservasMes.length;
+            const reservasActivas = reservasMes.filter(r => r.estado === 'Activa').length;
+            const reservasCanceladas = reservasMes.filter(r => r.estado === 'Cancelada').length;
 
-                estadisticas.innerHTML = `
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-number">${data.totalReservas}</div>
-                            <div class="stat-label">Total Reservas</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-number">${data.reservasActivas}</div>
-                            <div class="stat-label">Activas</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-number">${data.reservasCanceladas}</div>
-                            <div class="stat-label">Canceladas</div>
-                        </div>
+            estadisticas.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number">${totalReservas}</div>
+                        <div class="stat-label">Total Reservas</div>
                     </div>
-                `;
+                    <div class="stat-box">
+                        <div class="stat-number">${reservasActivas}</div>
+                        <div class="stat-label">Activas</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">${reservasCanceladas}</div>
+                        <div class="stat-label">Canceladas</div>
+                    </div>
+                </div>
+            `;
 
-                if (data.reservas.length === 0) {
-                    tabla.innerHTML = '<div class="no-data">No hay reservas en este mes</div>';
-                } else {
-                    tabla.innerHTML = `
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Cliente</th>
-                                    <th>Fecha</th>
-                                    <th>Horario</th>
-                                    <th>Personas</th>
-                                    <th>Servicio</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.reservas.map(r => `
+            if (reservasMes.length === 0) {
+                tabla.innerHTML = '<div class="no-data">No hay reservas en este mes</div>';
+            } else {
+                tabla.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Personas</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${reservasMes.map(r => {
+                    const cliente = clientes.find(c => c.id === r.clienteId);
+                    return `
                                     <tr>
-                                        <td>${r.ClienteNombre}</td>
-                                        <td>${formatearFecha(r.FechaReserva)}</td>
-                                        <td>${formatearHora(r.HoraInicio)} - ${formatearHora(r.HoraFin)}</td>
-                                        <td>${r.NumeroPersonas}</td>
-                                        <td>${r.TipoServicio}</td>
-                                        <td><span class="badge badge-${r.Estado.toLowerCase()}">${r.Estado}</span></td>
+                                        <td>${cliente ? cliente.nombre : 'Desconocido'}</td>
+                                        <td>${formatearFecha(r.fechaReserva)}</td>
+                                        <td>${r.horaInicio} - ${r.horaFin}</td>
+                                        <td>${r.numeroPersonas}</td>
+                                        <td>${r.tipoServicio}</td>
+                                        <td><span class="badge badge-${r.estado.toLowerCase()}">${r.estado}</span></td>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                estadisticas.innerHTML = '<div class="no-data" style="color: red;">Error al cargar el reporte</div>';
+                                `;
+                }).join('')}
+                        </tbody>
+                    </table>
+                `;
             }
         }
 
-        async function generarReporteCliente() {
-            const clienteId = document.getElementById('selClienteReporte').value;
-            alert(clienteId);
+        function generarReporteCliente() {
+            const clienteId = parseInt(document.getElementById('selClienteReporte').value);
+
             if (!clienteId) {
                 alert('Por favor seleccione un cliente');
                 return;
@@ -354,104 +364,87 @@
             const estadisticas = document.getElementById('estadisticasCliente');
             const tabla = document.getElementById('tablaCliente');
 
-            estadisticas.innerHTML = '<div class="loading">Cargando historial...</div>';
-            tabla.innerHTML = '';
+            const cliente = clientes.find(c => c.id === clienteId);
+            const reservasCliente = reservas.filter(r => r.clienteId === clienteId);
 
-            try {
-                const response = await fetch(`${API_URL}/reportes/clientes/${clienteId}`);
-                const data = await response.json();
+            const totalReservas = reservasCliente.length;
+            const reservasActivas = reservasCliente.filter(r => r.estado === 'Activa').length;
+            const reservasCanceladas = reservasCliente.filter(r => r.estado === 'Cancelada').length;
 
-                estadisticas.innerHTML = `
-                    <div class="cliente-card">
-                        <div class="cliente-nombre">${data.cliente.Nombre}</div>
-                        <div class="cliente-info">📧 ${data.cliente.Email}</div>
-                        <div class="cliente-info">📱 ${data.cliente.Telefono}</div>
-                        <div class="cliente-info">📅 Registrado: ${formatearFecha(data.cliente.FechaRegistro)}</div>
+            estadisticas.innerHTML = `
+                <div class="cliente-card">
+                    <div class="cliente-nombre">${cliente.nombre}</div>
+                    <div class="cliente-info">📧 ${cliente.email}</div>
+                    <div class="cliente-info">📱 ${cliente.telefono}</div>
+                    <div class="cliente-info">📅 Registrado: ${formatearFecha(cliente.fechaRegistro)}</div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number">${totalReservas}</div>
+                        <div class="stat-label">Total Reservas</div>
                     </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-number">${data.estadisticas.totalReservas}</div>
-                            <div class="stat-label">Total Reservas</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-number">${data.estadisticas.reservasActivas}</div>
-                            <div class="stat-label">Activas</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-number">${data.estadisticas.reservasCanceladas}</div>
-                            <div class="stat-label">Canceladas</div>
-                        </div>
+                    <div class="stat-box">
+                        <div class="stat-number">${reservasActivas}</div>
+                        <div class="stat-label">Activas</div>
                     </div>
-                `;
+                    <div class="stat-box">
+                        <div class="stat-number">${reservasCanceladas}</div>
+                        <div class="stat-label">Canceladas</div>
+                    </div>
+                </div>
+            `;
 
-                if (data.reservas.length === 0) {
-                    tabla.innerHTML = '<div class="no-data">Este cliente no tiene reservas</div>';
-                } else {
-                    tabla.innerHTML = `
-                        <table>
-                            <thead>
+            if (reservasCliente.length === 0) {
+                tabla.innerHTML = '<div class="no-data">Este cliente no tiene reservas</div>';
+            } else {
+                tabla.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Personas</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${reservasCliente.map(r => `
                                 <tr>
-                                    <th>Fecha</th>
-                                    <th>Horario</th>
-                                    <th>Personas</th>
-                                    <th>Servicio</th>
-                                    <th>Estado</th>
+                                    <td>${formatearFecha(r.fechaReserva)}</td>
+                                    <td>${r.horaInicio} - ${r.horaFin}</td>
+                                    <td>${r.numeroPersonas}</td>
+                                    <td>${r.tipoServicio}</td>
+                                    <td><span class="badge badge-${r.estado.toLowerCase()}">${r.estado}</span></td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                ${data.reservas.map(r => `
-                                    <tr>
-                                        <td>${formatearFecha(r.FechaReserva)}</td>
-                                        <td>${formatearHora(r.HoraInicio)} - ${formatearHora(r.HoraFin)}</td>
-                                        <td>${r.NumeroPersonas}</td>
-                                        <td>${r.TipoServicio}</td>
-                                        <td><span class="badge badge-${r.Estado.toLowerCase()}">${r.Estado}</span></td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                estadisticas.innerHTML = '<div class="no-data" style="color: red;">Error al cargar el historial</div>';
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
             }
         }
 
-        async function cargarListaClientes() {
+        function cargarListaClientes() {
             const container = document.getElementById('listaClientes');
-            container.innerHTML = '<div class="loading">Cargando clientes...</div>';
 
-            try {
-                const response = await fetch(API_URL + '/clientes');
-                const clientes = await response.json();
-
-                if (clientes.length === 0) {
-                    container.innerHTML = '<div class="no-data">No hay clientes registrados</div>';
-                } else {
-                    container.innerHTML = clientes.map(cliente => `
-                        <div class="cliente-card">
-                            <div class="cliente-nombre">${cliente.Nombre}</div>
-                            <div class="cliente-info">📧 ${cliente.Email}</div>
-                            <div class="cliente-info">📱 ${cliente.Telefono}</div>
-                            <div class="cliente-info">📅 Registrado: ${formatearFecha(cliente.FechaRegistro)}</div>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                container.innerHTML = '<div class="no-data" style="color: red;">Error al cargar los clientes</div>';
+            if (clientes.length === 0) {
+                container.innerHTML = '<div class="no-data">No hay clientes registrados</div>';
+            } else {
+                container.innerHTML = clientes.map(cliente => `
+                    <div class="cliente-card">
+                        <div class="cliente-nombre">${cliente.nombre}</div>
+                        <div class="cliente-info">📧 ${cliente.email}</div>
+                        <div class="cliente-info">📱 ${cliente.telefono}</div>
+                        <div class="cliente-info">📅 Registrado: ${formatearFecha(cliente.fechaRegistro)}</div>
+                    </div>
+                `).join('');
             }
         }
 
         function formatearFecha(fecha) {
             const d = new Date(fecha);
             return d.toLocaleDateString('es-ES');
-        }
-
-        function formatearHora(hora) {
-            return hora.substring(0, 5);
         }
     </script>
 </body>
